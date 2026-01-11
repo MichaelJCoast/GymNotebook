@@ -5,7 +5,7 @@ import Video from 'react-native-video';
 const { width } = Dimensions.get('window');
 
 
-const BACKEND_URL = 'https://reactnativegymapp.onrender.com'; 
+const BACKEND_URL = "https://gymnotebook.onrender.com";
 
 export default function MusicPlayer() {
   const [loading, setLoading] = useState(false);

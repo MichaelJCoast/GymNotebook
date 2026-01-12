@@ -7,7 +7,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-
 app.get('/', (req, res) => {
   res.json({ 
     status: 'Backend Working',
@@ -19,7 +18,6 @@ app.get('/', (req, res) => {
   });
 });
 
-
 app.get('/api/search', async (req, res) => {
   try {
     const query = req.query.q;
@@ -30,10 +28,8 @@ app.get('/api/search', async (req, res) => {
 
     console.log(`Searching for: ${query}`);
     
-
     const results = await yts(query);
-
-
+    
     const tracks = results.videos.slice(0, 20).map(video => ({
       id: video.videoId,
       name: video.title,
@@ -57,35 +53,29 @@ app.get('/api/search', async (req, res) => {
   }
 });
 
-
 app.get('/api/stream/:videoId', async (req, res) => {
   try {
     const { videoId } = req.params;
     
     console.log(`Request for: ${videoId}`);
     
-    
     const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+    
     if (!ytdl.validateURL(videoUrl)) {
       return res.status(400).json({ error: 'Invalid video ID' });
     }
 
-   
     const info = await ytdl.getInfo(videoId);
     
-    
     const audioFormats = ytdl.filterFormats(info.formats, 'audioonly');
-    
-    
     const audioFormat = audioFormats.find(f => f.hasAudio && !f.hasVideo) || audioFormats[0];
 
     if (!audioFormat) {
       return res.status(404).json({ error: 'Audio not found' });
     }
 
-    console.log(`Stream Functional : ${info.videoDetails.title}`);
+    console.log(`Stream Functional: ${info.videoDetails.title}`);
     
-   
     res.json({ 
       url: audioFormat.url,
       title: info.videoDetails.title,
@@ -101,7 +91,6 @@ app.get('/api/stream/:videoId', async (req, res) => {
     });
   }
 });
-
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

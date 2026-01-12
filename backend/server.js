@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const ytdl = require('ytdl-core');
+const ytdl = require('@distube/ytdl-core');
 const yts = require('yt-search');
 
 const app = express();
@@ -58,26 +58,22 @@ app.get('/api/stream/:videoId', async (req, res) => {
     const { videoId } = req.params;
     
     console.log(`Request for: ${videoId}`);
-    
-    const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
-    
-    if (!ytdl.validateURL(videoUrl)) {
-      return res.status(400).json({ error: 'Invalid video ID' });
-    }
 
     const info = await ytdl.getInfo(videoId);
     
-    const audioFormats = ytdl.filterFormats(info.formats, 'audioonly');
-    const audioFormat = audioFormats.find(f => f.hasAudio && !f.hasVideo) || audioFormats[0];
+    const format = ytdl.chooseFormat(info.formats, { 
+      quality: 'lowestaudio',
+      filter: 'audioonly' 
+    });
 
-    if (!audioFormat) {
+    if (!format || !format.url) {
       return res.status(404).json({ error: 'Audio not found' });
     }
 
-    console.log(`Stream Functional: ${info.videoDetails.title}`);
+    console.log(`Stream OK: ${info.videoDetails.title}`);
     
     res.json({ 
-      url: audioFormat.url,
+      url: format.url,
       title: info.videoDetails.title,
       author: info.videoDetails.author.name,
       thumbnail: info.videoDetails.thumbnails[0]?.url
@@ -86,7 +82,7 @@ app.get('/api/stream/:videoId', async (req, res) => {
   } catch (error) {
     console.error('[STREAM ERROR]:', error);
     res.status(500).json({ 
-      error: 'Error getting the audio',
+      error: 'Error getting audio',
       details: error.message 
     });
   }
@@ -94,5 +90,5 @@ app.get('/api/stream/:videoId', async (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Backend functioning on port ${PORT}`);
+  console.log(`Backend on port ${PORT}`);
 });

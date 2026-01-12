@@ -13,7 +13,7 @@ export default function Login() {
           source={require('../images/gym.jpg')} 
           style={styles.background}
         > 
-        <Text style={styles.title}>Isaiah 40:31</Text>
+        <Text style={styles.title}>Hello!</Text>
     <View style={styles.container}>
            
       <TextInput title="Email" placeholder="Email" placeholderTextColor="white" style={styles.input} />
@@ -50,7 +50,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     padding: 20,
-    //justifyContent: 'space-between',
+    
   },
   logoContainer: {
     alignItems: 'center',

@@ -4,7 +4,6 @@ import Video from 'react-native-video';
 
 const { width } = Dimensions.get('window');
 
-
 const BACKEND_URL = "https://gymnotebook.onrender.com";
 
 export default function MusicPlayer() {
@@ -38,7 +37,7 @@ export default function MusicPlayer() {
       }
 
     } catch (error) {
-      console.log("Erro na busca:", error);
+      console.log("Search error:", error);
       setSearchResults([]);
     } finally {
       setLoading(false);
@@ -50,21 +49,30 @@ export default function MusicPlayer() {
     setPlaying(false);
     
     try {
-      // Pega o URL de streaming do backend
+      console.log('Attempting to play:', track.name);
+      console.log('VideoId:', track.videoId);
+      
       const response = await fetch(
         `${BACKEND_URL}/api/stream/${track.videoId}`
       );
+      
+      console.log('Response status:', response.status);
+      
       const data = await response.json();
+      console.log('Data received:', data);
       
       if (data.url) {
+        console.log('Audio URL received:', data.url.substring(0, 100) + '...');
         setAudioUrl(data.url);
         setCurrentTrack(track);
         setTrackTitle(track.name);
         setPlaying(true);
         setShowResults(false);
+      } else {
+        console.log('No URL in response');
       }
     } catch (error) {
-      console.log("Erro ao carregar stream:", error);
+      console.log("Stream loading error:", error);
     } finally {
       setLoadingStream(false);
     }
@@ -99,15 +107,26 @@ export default function MusicPlayer() {
         
         {audioUrl && (
           <Video
-            source={{ uri: audioUrl }}
+            source={{ 
+              uri: audioUrl,
+              headers: {
+                'User-Agent': 'Mozilla/5.0'
+              }
+            }}
             paused={!playing}
             playInBackground={true}
             playWhenInactive={true}
             ignoreSilentSwitch="ignore"
             style={{ width: 0, height: 0 }}
-            onEnd={() => setPlaying(false)}
+            onLoad={() => console.log('Audio loaded successfully')}
+            onLoadStart={() => console.log('Started loading audio')}
+            onProgress={(data) => console.log('Progress:', data.currentTime)}
+            onEnd={() => {
+              console.log('Track ended');
+              setPlaying(false);
+            }}
             onError={(e) => {
-              console.log("Erro Player:", e);
+              console.log("Player error:", e);
               setPlaying(false);
             }}
           />
@@ -116,7 +135,7 @@ export default function MusicPlayer() {
         <View style={styles.searchBox}>
           <TextInput
             style={styles.input}
-            placeholder="Pesquisar no WhatListen..."
+            placeholder="Search on WhatListen..."
             placeholderTextColor="#888"
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -127,7 +146,6 @@ export default function MusicPlayer() {
 
         <View style={styles.container}>
           
-          {/* Resultados da Pesquisa */}
           {showResults && (
             <View style={styles.resultsContainer}>
               {loading ? (
@@ -135,7 +153,7 @@ export default function MusicPlayer() {
               ) : searchResults.length > 0 ? (
                 <>
                   <View style={styles.resultsHeader}>
-                    <Text style={styles.resultsTitle}>{searchResults.length} músicas encontradas</Text>
+                    <Text style={styles.resultsTitle}>{searchResults.length} tracks found</Text>
                     <TouchableOpacity onPress={() => setShowResults(false)}>
                       <Text style={styles.closeButton}>✕</Text>
                     </TouchableOpacity>
@@ -149,14 +167,13 @@ export default function MusicPlayer() {
                 </>
               ) : (
                 <View style={styles.noResultsContainer}>
-                  <Text style={styles.noResults}>Nenhuma música encontrada</Text>
-                  <Text style={styles.tryAgain}>Tenta pesquisar por artista ou título</Text>
+                  <Text style={styles.noResults}>No tracks found</Text>
+                  <Text style={styles.tryAgain}>Try searching by artist or title</Text>
                 </View>
               )}
             </View>
           )}
 
-          {/* Widget do Player */}
           {!showResults && (
             <View style={styles.centerContent}>
               {loadingStream && (
@@ -180,9 +197,9 @@ export default function MusicPlayer() {
                 <Text style={styles.artistText} numberOfLines={1}>{currentTrack.artist_name}</Text>
               )}
               <Text style={styles.statusText}>
-                {loadingStream ? "A carregar stream..." : 
-                 loading ? "A pesquisar..." : 
-                 playing ? "A bombar ⚡" : "Pausado"}
+                {loadingStream ? "Loading stream..." : 
+                 loading ? "Searching..." : 
+                 playing ? "Playing" : "Paused"}
               </Text>
             </View>
             

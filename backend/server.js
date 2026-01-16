@@ -1,9 +1,8 @@
 const express = require('express');
 const cors = require('cors');
-const YTDlpWrap = require('yt-dlp-wrap').default;
+const youtube = require('youtube-ext');
 const yts = require('yt-search');
 
-const ytDlp = new YTDlpWrap();
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -53,23 +52,22 @@ app.get('/api/stream/:videoId', async (req, res) => {
     const { videoId } = req.params;
     console.log(`Request for: ${videoId}`);
     
-    const url = `https://www.youtube.com/watch?v=${videoId}`;
-    const info = await ytDlp.getVideoInfo(url);
+    const info = await youtube.video.info({ videoId });
     
-    const audioFormat = info.formats.find(f => 
-      f.acodec !== 'none' && f.vcodec === 'none'
-    ) || info.formats.find(f => f.acodec !== 'none');
+    const audioFormat = info.streamingData.adaptiveFormats.find(f => 
+      f.mimeType && f.mimeType.includes('audio')
+    );
     
     if (!audioFormat || !audioFormat.url) {
       return res.status(404).json({ error: 'Audio not found' });
     }
     
-    console.log(`Stream OK: ${info.title}`);
+    console.log(`Stream OK: ${info.videoDetails.title}`);
     res.json({ 
       url: audioFormat.url,
-      title: info.title,
-      author: info.uploader,
-      thumbnail: info.thumbnail
+      title: info.videoDetails.title,
+      author: info.videoDetails.author,
+      thumbnail: info.videoDetails.thumbnails[0]?.url
     });
   } catch (error) {
     console.error('[STREAM ERROR]:', error);

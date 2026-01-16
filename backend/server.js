@@ -1,8 +1,9 @@
 const express = require('express');
 const cors = require('cors');
-const ytdl = require('@distube/ytdl-core');
+const YTDlpWrap = require('yt-dlp-wrap').default;
 const yts = require('yt-search');
 
+const ytDlp = new YTDlpWrap();
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -21,15 +22,11 @@ app.get('/', (req, res) => {
 app.get('/api/search', async (req, res) => {
   try {
     const query = req.query.q;
-    
     if (!query) {
       return res.status(400).json({ error: 'Mandatory Query' });
     }
-
     console.log(`Searching for: ${query}`);
-    
     const results = await yts(query);
-    
     const tracks = results.videos.slice(0, 20).map(video => ({
       id: video.videoId,
       name: video.title,
@@ -40,10 +37,8 @@ app.get('/api/search', async (req, res) => {
         video.seconds,
       videoId: video.videoId
     }));
-
     console.log(`Found ${tracks.length} results`);
     res.json({ results: tracks });
-    
   } catch (error) {
     console.error('[SEARCH ERROR]:', error);
     res.status(500).json({ 
@@ -56,29 +51,26 @@ app.get('/api/search', async (req, res) => {
 app.get('/api/stream/:videoId', async (req, res) => {
   try {
     const { videoId } = req.params;
-    
     console.log(`Request for: ${videoId}`);
-
-    const info = await ytdl.getInfo(videoId);
     
-    const format = ytdl.chooseFormat(info.formats, { 
-      quality: 'lowestaudio',
-      filter: 'audioonly' 
-    });
-
-    if (!format || !format.url) {
+    const url = `https://www.youtube.com/watch?v=${videoId}`;
+    const info = await ytDlp.getVideoInfo(url);
+    
+    const audioFormat = info.formats.find(f => 
+      f.acodec !== 'none' && f.vcodec === 'none'
+    ) || info.formats.find(f => f.acodec !== 'none');
+    
+    if (!audioFormat || !audioFormat.url) {
       return res.status(404).json({ error: 'Audio not found' });
     }
-
-    console.log(`Stream OK: ${info.videoDetails.title}`);
     
+    console.log(`Stream OK: ${info.title}`);
     res.json({ 
-      url: format.url,
-      title: info.videoDetails.title,
-      author: info.videoDetails.author.name,
-      thumbnail: info.videoDetails.thumbnails[0]?.url
+      url: audioFormat.url,
+      title: info.title,
+      author: info.uploader,
+      thumbnail: info.thumbnail
     });
-    
   } catch (error) {
     console.error('[STREAM ERROR]:', error);
     res.status(500).json({ 
